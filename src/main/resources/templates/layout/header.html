@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="header-head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' — AI Recommendation System'">AI Recommendation System</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<nav th:fragment="header-nav" class="navbar">
+    <div class="container nav-container">
+        <a th:href="@{/}" class="nav-brand">
+            <span>⚡ AI Recommender</span>
+            <span class="brand-badge">Java Engine</span>
+        </a>
+        <ul class="nav-links">
+            <li>
+                <a th:href="@{/}" class="nav-link" th:classappend="${activePage == 'home' ? 'active' : ''}">Home</a>
+            </li>
+            <li>
+                <a th:href="@{/recommendations}" class="nav-link" th:classappend="${activePage == 'recommendations' ? 'active' : ''}">Recommendations</a>
+            </li>
+            <li>
+                <a th:href="@{/items}" class="nav-link" th:classappend="${activePage == 'items' ? 'active' : ''}">Browse Items</a>
+            </li>
+            <li>
+                <a th:href="@{/about}" class="nav-link" th:classappend="${activePage == 'about' ? 'active' : ''}">About</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/header :: header-head('Personalized AI Recommendations')}"></head>
+<body>
+<nav th:replace="~{layout/header :: header-nav}"></nav>
+
+<header class="hero-section" style="padding: 2.25rem 0 1.75rem;">
+    <div class="container">
+        <h1 class="hero-title" style="font-size: 2rem;">🎯 Personalized AI Recommendations</h1>
+        <p class="hero-subtitle" style="margin-bottom: 0;">
+            Select a user profile to generate dynamic, content-based recommendations tailored to individual tastes.
+            Previously rated items are automatically excluded.
+        </p>
+    </div>
+</header>
+
+<main class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+
+    <!-- User Profile Selector Card -->
+    <section class="profile-card">
+        <div class="profile-header">
+            <div>
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Active User Profile</span>
+                <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main);" th:text="${activeUser.name}">John Doe</h2>
+                <span style="font-size: 0.85rem; color: var(--text-muted);" th:text="${activeUser.email}">john@example.com</span>
+            </div>
+
+            <div class="user-chips">
+                <a th:each="u : ${users}"
+                   th:href="@{/recommendations(userId=${u.id})}"
+                   class="user-chip"
+                   th:classappend="${activeUser.id == u.id ? 'active' : ''}">
+                    👤 <span th:text="${u.name}">User Name</span>
+                </a>
+            </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1rem;">
+            <div style="margin-bottom: 0.75rem;">
+                <strong style="font-size: 0.85rem; color: var(--text-muted);">Category Preferences:</strong>
+                <div class="pref-pills">
+                    <span class="pref-pill" th:each="p : ${preferences}">
+                        <span th:text="${p.category.name}">Category</span>:
+                        <strong th:text="${p.preferenceScore} + '/5.0'">5.0/5.0</strong>
+                    </span>
+                    <span th:if="${preferences == null || preferences.isEmpty()}" style="font-size: 0.85rem; color: var(--text-light);">
+                        No explicit category preferences registered.
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                <strong style="font-size: 0.85rem; color: var(--text-muted);">Previously Rated Items (Excluded from new recommendations):</strong>
+                <div class="pref-pills" style="margin-top: 0.35rem;">
+                    <span class="pref-pill" style="background-color: #fff1f2; border-color: #fecdd3; color: #9f1239;" th:each="r : ${previousRatings}">
+                        🚫 <span th:text="${r.item.name}">Movie Title</span>
+                        (<span th:text="${r.rating} + '★'">5.0★</span>)
+                    </span>
+                    <span th:if="${previousRatings == null || previousRatings.isEmpty()}" style="font-size: 0.85rem; color: var(--text-light);">
+                        No previous ratings (all catalog items eligible).
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filters Bar -->
+    <section class="filter-card" style="padding: 1rem 1.25rem; margin-bottom: 1.75rem;">
+        <form th:action="@{/recommendations}" method="get" class="filter-form">
+            <input type="hidden" name="userId" th:value="${activeUser.id}">
+            
+            <div class="filter-select-group" style="flex: 1 1 200px;">
+                <select name="categoryId" class="select-control">
+                    <option value="">Filter by Category (All)</option>
+                    <option th:each="cat : ${categories}"
+                            th:value="${cat.id}"
+                            th:text="${cat.name}"
+                            th:selected="${selectedCategoryId != null && selectedCategoryId == cat.id}">
+                        Category
+                    </option>
+                </select>
+            </div>
+
+            <div class="filter-select-group" style="flex: 1 1 200px;">
+                <select name="minRating" class="select-control">
+                    <option value="">Minimum Rating (Any)</option>
+                    <option value="4.0" th:selected="${selectedMinRating != null && selectedMinRating == 4.0}">4.0+ Stars</option>
+                    <option value="4.5" th:selected="${selectedMinRating != null && selectedMinRating == 4.5}">4.5+ Stars</option>
+                    <option value="4.8" th:selected="${selectedMinRating != null && selectedMinRating == 4.8}">4.8+ Stars</option>
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
+                <a th:href="@{/recommendations(userId=${activeUser.id})}" class="btn btn-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </section>
+
+    <!-- Recommendations Grid -->
+    <section>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h2 style="font-size: 1.35rem; font-weight: 700;">
+                AI Matches for <span th:text="${activeUser.name}">User</span>
+            </h2>
+            <span style="font-size: 0.9rem; color: var(--text-muted);" th:text="${recommendations.size()} + ' recommended item(s)'">8 items</span>
+        </div>
+
+        <div class="cards-grid" th:if="${recommendations != null && !recommendations.isEmpty()}">
+            <div class="item-card" th:each="rec, iter : ${recommendations}">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 800; font-size: 0.85rem; color: var(--primary);" th:text="'#' + ${iter.count} + ' Match'">#1 Match</span>
+                        <span class="badge-category" th:text="${rec.item.category != null ? rec.item.category.name : 'General'}">Category</span>
+                    </div>
+
+                    <h3 class="item-title" style="margin-bottom: 0.5rem;" th:text="${rec.item.name}">Item Title</h3>
+
+                    <!-- Score Badge -->
+                    <div class="score-badge high" style="width: 100%; justify-content: space-between;">
+                        <span>AI Confidence Score</span>
+                        <strong style="font-size: 1rem;" th:text="${#numbers.formatDecimal(rec.score, 1, 3)}">0.962</strong>
+                    </div>
+
+                    <p class="item-description" th:text="${rec.item.description}">Item Description</p>
+                </div>
+
+                <div>
+                    <!-- Quality Rating & Popularity -->
+                    <div class="metric-row">
+                        <span>Quality Rating:</span>
+                        <span class="stars"><span th:text="${rec.item.rating}">4.9</span> / 5.0 ★</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span>Popularity:</span>
+                        <div>
+                            <span th:text="${rec.item.popularity}">95</span> / 100
+                            <div class="popularity-bar-container">
+                                <div class="popularity-bar-fill" th:style="'width: ' + ${rec.item.popularity} + '%;'"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Granular Mathematical Breakdown Box -->
+                    <div class="breakdown-box">
+                        <div style="font-weight: 700; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">
+                            Formula Breakdown (100% Java Engine)
+                        </div>
+                        <div class="breakdown-row">
+                            <span>Preference (40%):</span>
+                            <span th:text="${#numbers.formatDecimal(rec.preferenceScore * 0.40, 1, 3)}">0.400</span>
+                        </div>
+                        <div class="breakdown-row">
+                            <span>Category Match (20%):</span>
+                            <span th:text="${#numbers.formatDecimal(rec.categoryScore * 0.20, 1, 3)}">0.200</span>
+                        </div>
+                        <div class="breakdown-row">
+                            <span>Item Rating (25%):</span>
+                            <span th:text="${#numbers.formatDecimal(rec.ratingScore * 0.25, 1, 3)}">0.230</span>
+                        </div>
+                        <div class="breakdown-row">
+                            <span>Popularity (15%):</span>
+                            <span th:text="${#numbers.formatDecimal(rec.popularityScore * 0.15, 1, 3)}">0.132</span>
+                        </div>
+                        <div class="breakdown-row">
+                            <span>Final Composite:</span>
+                            <span th:text="${#numbers.formatDecimal(rec.score, 1, 3)}">0.962</span>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <a th:href="@{'/items/' + ${rec.item.id}}" class="btn btn-primary btn-sm" style="flex: 1;">View Details & Rate &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" th:if="${recommendations == null || recommendations.isEmpty()}">
+            <div class="empty-icon">✨</div>
+            <h3 class="empty-title">No recommendations available</h3>
+            <p class="empty-text">
+                Either you have already rated all candidate items in this category, or no items match your active filters.
+            </p>
+            <a th:href="@{/recommendations(userId=${activeUser.id})}" class="btn btn-primary btn-sm">Clear Filters</a>
+        </div>
+    </section>
+
+</main>
+
+<footer th:replace="~{layout/footer :: footer}"></footer>
+</body>
+</html>

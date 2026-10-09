@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/header :: header-head('About & Architecture')}"></head>
+<body>
+<nav th:replace="~{layout/header :: header-nav}"></nav>
+
+<header class="hero-section" style="padding: 2.5rem 0 2rem;">
+    <div class="container">
+        <h1 class="hero-title" style="font-size: 2.25rem;">ℹ️ System Architecture & Algorithm</h1>
+        <p class="hero-subtitle" style="margin-bottom: 0;">
+            Technical breakdown of the 100% Java-based intelligent recommendation engine, object-oriented architecture, and scoring mechanics.
+        </p>
+    </div>
+</header>
+
+<main class="container" style="padding-top: 2.5rem; padding-bottom: 3.5rem;">
+
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+
+        <!-- Section 1: Intelligent Weighted Scoring Formula -->
+        <div class="details-card">
+            <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary);">
+                1. Recommendation Scoring Formula
+            </h2>
+            <p style="color: var(--text-muted); margin-bottom: 1.25rem;">
+                The recommendation engine employs an explainable, data-driven weighted composite scoring formula where all factors are normalized to a standard <code style="background: var(--bg-muted); padding: 0.1rem 0.4rem; border-radius: 4px;">[0.0, 1.0]</code> scale:
+            </p>
+
+            <div style="background-color: var(--bg-muted); padding: 1.25rem; border-radius: var(--radius-md); font-family: monospace; font-size: 0.95rem; border-left: 4px solid var(--primary); margin-bottom: 1.5rem;">
+                <strong>Final Score</strong> = (Preference Score &times; 0.40) + (Category Match Score &times; 0.20) + (Item Rating Score &times; 0.25) + (Popularity Score &times; 0.15)
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-sm); background: #fff;">
+                    <strong style="color: var(--primary);">1. Preference Score (40%)</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Normalized user affinity for the candidate item's category: <code>userPreference / 5.0</code>.
+                    </p>
+                </div>
+                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-sm); background: #fff;">
+                    <strong style="color: var(--primary);">2. Category Match (20%)</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Evaluates whether the candidate item's category matches the user's positive preference profile.
+                    </p>
+                </div>
+                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-sm); background: #fff;">
+                    <strong style="color: var(--primary);">3. Quality Rating (25%)</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Normalized average item rating: <code>itemRating / 5.0</code>.
+                    </p>
+                </div>
+                <div style="border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-sm); background: #fff;">
+                    <strong style="color: var(--primary);">4. Community Popularity (15%)</strong>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Normalized interaction counter: <code>popularity / 100.0</code>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: OOP & Core Architecture -->
+        <div class="details-card">
+            <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary);">
+                2. Object-Oriented Design & Clean Architecture
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div>
+                    <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem;">OOP Concepts Implemented</h3>
+                    <ul style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.8;">
+                        <li><strong>Encapsulation</strong>: Private fields with validated getters and setters across all model classes.</li>
+                        <li><strong>Inheritance & Polymorphism</strong>: <code>Admin</code> extends <code>User</code>; <code>ContentBasedRecommender</code> extends <code>RecommendationEngine</code>.</li>
+                        <li><strong>Interfaces & Contracts</strong>: <code>Recommender</code> interface defines the abstract recommendation contract.</li>
+                        <li><strong>Composition / Association</strong>: <code>Item</code> HAS-A <code>Category</code>; <code>Rating</code> HAS-A <code>User</code> and <code>Item</code>.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem;">Collections & Generics</h3>
+                    <ul style="padding-left: 1.25rem; color: var(--text-muted); font-size: 0.9rem; line-height: 1.8;">
+                        <li><code>List&lt;Item&gt;</code>, <code>List&lt;Recommendation&gt;</code>: Type-safe ordered sequences.</li>
+                        <li><code>Set&lt;Integer&gt; ratedItemIds</code>: O(1) deduplication & previous rating exclusion.</li>
+                        <li><code>Map&lt;Category, Double&gt;</code>: O(1) constant-time user taste preference lookups.</li>
+                        <li><code>Comparator.comparingDouble()</code>: Descending sort by calculated score.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Academic / Viva Talking Points -->
+        <div class="details-card">
+            <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary);">
+                3. Academic & Viva Defense Summary
+            </h2>
+            <div style="background-color: var(--primary-light); border: 1px solid #bfdbfe; padding: 1.25rem; border-radius: var(--radius-md); color: #1e3a8a; font-size: 0.95rem; line-height: 1.7;">
+                <p style="margin-bottom: 0.75rem;">
+                    <strong>Is this Machine Learning?</strong><br>
+                    No. It is an intelligent, data-driven, content-based recommendation algorithm written in 100% Java using Object-Oriented Programming, Java Collections, and Generics.
+                </p>
+                <p>
+                    <strong>Key Personalization Feature:</strong><br>
+                    Different users receive distinct rankings according to their category preferences. Items already rated by the target user are excluded from new recommendation sets.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+</main>
+
+<footer th:replace="~{layout/footer :: footer}"></footer>
+</body>
+</html>

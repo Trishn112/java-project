@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/header :: header-head(${item.name} + ' — Details')}"></head>
+<body>
+<nav th:replace="~{layout/header :: header-nav}"></nav>
+
+<main class="container" style="padding-top: 2.5rem; padding-bottom: 3rem;">
+
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+        <a th:href="@{/}">Home</a> &gt;
+        <a th:href="@{/items}">Items</a> &gt;
+        <span style="color: var(--text-main); font-weight: 600;" th:text="${item.name}">Item Name</span>
+    </div>
+
+    <!-- Feedback Alerts -->
+    <div th:if="${successMessage}" class="alert alert-success">
+        <span>✅</span>
+        <span th:text="${successMessage}">Rating submitted successfully!</span>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger">
+        <span>⚠️</span>
+        <span th:text="${errorMessage}">Error occurred.</span>
+    </div>
+
+    <div class="details-grid">
+
+        <!-- Left Column: Item Information -->
+        <div class="details-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <span style="font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;" th:text="'Item ID: #' + ${item.id}">Item ID: #101</span>
+                    <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);" th:text="${item.name}">The Dark Knight</h1>
+                </div>
+                <span class="badge-category" style="font-size: 0.85rem; padding: 0.35rem 0.8rem;" th:text="${item.category != null ? item.category.name : 'General'}">Action</span>
+            </div>
+
+            <p style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 2rem;" th:text="${item.description}">
+                Detailed movie description.
+            </p>
+
+            <!-- Metrics -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem; background: var(--bg-muted); padding: 1.25rem; border-radius: var(--radius-md);">
+                <div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">COMMUNITY QUALITY RATING</span>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #f59e0b; margin-top: 0.25rem;">
+                        <span th:text="${item.rating}">4.9</span> / 5.0 ★
+                    </div>
+                </div>
+                <div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">POPULARITY INDEX</span>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-top: 0.25rem;">
+                        <span th:text="${item.popularity}">95</span> / 100
+                    </div>
+                </div>
+            </div>
+
+            <!-- Existing Ratings / Reviews Section -->
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem;">
+                    Recorded User Ratings (<span th:text="${itemRatings.size()}">1</span>)
+                </h3>
+
+                <div th:if="${itemRatings != null && !itemRatings.isEmpty()}">
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div th:each="r : ${itemRatings}" style="background-color: #fff; border: 1px solid var(--border-color); padding: 0.85rem 1.15rem; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong th:text="${r.user.name}">John Doe</strong>
+                                <span style="font-size: 0.8rem; color: var(--text-light); margin-left: 0.5rem;" th:text="'(' + ${r.user.role} + ')'">(USER)</span>
+                            </div>
+                            <span class="stars" style="font-size: 1rem;">
+                                <span th:text="${r.rating}">5.0</span> ★
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${itemRatings == null || itemRatings.isEmpty()}" style="font-size: 0.9rem; color: var(--text-light);">
+                    No users have rated this item yet. Be the first to rate!
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Interactive Rating Form -->
+        <div class="rating-form-card">
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">⭐ Rate This Item</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                Select your user profile and assign a rating. The score is immediately updated in the in-memory repository.
+            </p>
+
+            <form th:action="@{'/items/' + ${item.id} + '/rate'}" method="post">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">Select User Profile:</label>
+                    <select name="userId" class="select-control" required>
+                        <option th:each="u : ${users}"
+                                th:value="${u.id}"
+                                th:text="${u.name} + ' (' + ${u.email} + ')'">
+                            User Name
+                        </option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">Assign Rating:</label>
+                    <select name="score" class="select-control" required>
+                        <option value="5.0">★★★★★ (5.0 - Masterpiece)</option>
+                        <option value="4.5">★★★★☆ (4.5 - Excellent)</option>
+                        <option value="4.0">★★★★☆ (4.0 - Very Good)</option>
+                        <option value="3.5">★★★☆☆ (3.5 - Good)</option>
+                        <option value="3.0">★★★☆☆ (3.0 - Average)</option>
+                        <option value="2.0">★★☆☆☆ (2.0 - Below Average)</option>
+                        <option value="1.0">★☆☆☆☆ (1.0 - Poor)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Rating</button>
+            </form>
+
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); font-size: 0.8rem; color: var(--text-muted);">
+                💡 <em>Note: Rating an item marks it as consumed and excludes it from future recommendations for that user.</em>
+            </div>
+        </div>
+
+    </div>
+
+</main>
+
+<footer th:replace="~{layout/footer :: footer}"></footer>
+</body>
+</html>

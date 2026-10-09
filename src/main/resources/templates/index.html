@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Based Movie Recommendation System</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+    <!-- Header & Hero Section -->
+    <header class="app-header">
+        <div class="container">
+            <h1 class="main-heading">AI-Based Movie Recommendation System</h1>
+            <p class="sub-heading">Enter a movie you like to discover similar, highly rated movies.</p>
+        </div>
+    </header>
+
+    <main class="container main-content">
+
+        <!-- Search Form Section -->
+        <section class="search-section">
+            <form th:action="@{/search}" method="get" class="search-form">
+                <div class="search-input-wrapper">
+                    <input type="text"
+                           name="movieName"
+                           th:value="${searchedMovieName}"
+                           placeholder="Enter movie name, e.g., Inception, Kantara, Avatar, Parasite"
+                           required
+                           autofocus
+                           class="search-input">
+                </div>
+                <button type="submit" class="btn-submit">Show Similar Movies</button>
+            </form>
+
+            <!-- Quick Suggestion Chips for Rapid Testing -->
+            <div class="quick-chips">
+                <span class="chips-label">Try searching:</span>
+                <a th:href="@{/search(movieName='Inception')}" class="chip">Inception</a>
+                <a th:href="@{/search(movieName='Interstellar')}" class="chip">Interstellar</a>
+                <a th:href="@{/search(movieName='The Dark Knight')}" class="chip">The Dark Knight</a>
+                <a th:href="@{/search(movieName='Kantara')}" class="chip">Kantara (Kannada)</a>
+                <a th:href="@{/search(movieName='Parasite')}" class="chip">Parasite (Korean)</a>
+                <a th:href="@{/search(movieName='Dangal')}" class="chip">Dangal (Hindi)</a>
+                <a th:href="@{/search(movieName='Spirited Away')}" class="chip">Spirited Away (Japanese)</a>
+                <a th:href="@{/search(movieName='Gladiator II')}" class="chip">Gladiator II</a>
+            </div>
+        </section>
+
+        <!-- Error / Not Found Alert Banner -->
+        <div th:if="${errorMessage}" class="alert alert-error">
+            <span class="alert-icon">⚠️</span>
+            <span class="alert-text" th:text="${errorMessage}">Movie not found. Please try another title.</span>
+        </div>
+
+        <!-- Disambiguation / Matching Search Results Grid -->
+        <section th:if="${matchingMovies != null && matchingMovies.size() > 1}" class="matching-candidates-section">
+            <div class="matching-header">
+                <h3 class="matching-title">
+                    🔍 Matching Search Results for "<span th:text="${searchedMovieName}">Search</span>" (<span th:text="${matchingMovies.size()}">5</span> found)
+                </h3>
+                <span class="matching-subtitle">Select the specific movie version or sequel to generate tailored AI recommendations:</span>
+            </div>
+            <div class="candidate-grid">
+                <div th:each="candidate : ${matchingMovies}"
+                     th:class="${targetMovie != null && targetMovie.tmdbId == candidate.tmdbId} ? 'candidate-card candidate-active' : 'candidate-card'">
+                    <img th:src="${candidate.posterUrl}"
+                         th:alt="${candidate.title}"
+                         class="candidate-poster"
+                         loading="lazy"
+                         onerror="this.src='https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=500&q=80'">
+                    <div class="candidate-info">
+                        <div class="candidate-top">
+                            <h4 class="candidate-title" th:text="${candidate.title}">Movie Title</h4>
+                            <span class="candidate-year" th:if="${candidate.releaseYear > 0}" th:text="'(' + ${candidate.releaseYear} + ')'">(2022)</span>
+                        </div>
+                        <div class="candidate-original-title" th:if="${candidate.hasDistinctOriginalTitle()}" th:text="'Original: ' + ${candidate.originalTitle}">
+                            Original: Original Title
+                        </div>
+                        <div class="candidate-meta">
+                            <span class="candidate-lang" th:if="${candidate.originalLanguage != null && !candidate.originalLanguage.isEmpty()}" th:text="'🗣️ ' + ${candidate.languageDisplayName}">🗣️ English</span>
+                            <span class="candidate-rating" th:if="${candidate.voteAverage > 0}">⭐ <span th:text="${#numbers.formatDecimal(candidate.voteAverage, 1, 1)}">7.8</span></span>
+                            <span class="candidate-tmdb-id" th:text="'TMDB #' + ${candidate.tmdbId}">TMDB #12345</span>
+                        </div>
+                        <p class="candidate-overview" th:if="${candidate.overview != null && !candidate.overview.isEmpty()}" th:text="${candidate.overview}">
+                            Short movie synopsis...
+                        </p>
+                        <div class="candidate-action">
+                            <a th:if="${targetMovie == null || targetMovie.tmdbId != candidate.tmdbId}"
+                               th:href="@{/recommend(tmdbId=${candidate.tmdbId})}"
+                               class="btn-select-candidate">
+                                Select This Movie ➔
+                            </a>
+                            <span th:if="${targetMovie != null && targetMovie.tmdbId == candidate.tmdbId}" class="badge-currently-selected">
+                                ✓ Currently Selected Target
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Matched Target Movie Banner (When search succeeded) -->
+        <section th:if="${targetMovie != null}" class="target-movie-banner">
+            <div class="target-movie-content">
+                <img th:src="${targetMovie.posterUrl}"
+                     th:alt="${targetMovie.title}"
+                     class="target-poster"
+                     onerror="this.src='https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=500&q=80'">
+                <div class="target-details">
+                    <div class="target-tag">Target Reference Movie</div>
+                    <h2 class="target-title">
+                        <span th:text="${targetMovie.title}">Inception</span>
+                        <span class="target-year" th:if="${targetMovie.releaseYear > 0}" th:text="'(' + ${targetMovie.releaseYear} + ')'">(2010)</span>
+                    </h2>
+                    <div class="target-original-title" th:if="${targetMovie.hasDistinctOriginalTitle()}" th:text="'Original Title: ' + ${targetMovie.originalTitle}">
+                        Original Title: Inception
+                    </div>
+                    <div class="target-meta">
+                        <span class="target-genre" th:text="${targetMovie.genreString}">Science Fiction • Action</span>
+                        <span class="target-divider" th:if="${targetMovie.originalLanguage != null && !targetMovie.originalLanguage.isEmpty()}">•</span>
+                        <span class="target-lang-tag" th:if="${targetMovie.originalLanguage != null && !targetMovie.originalLanguage.isEmpty()}" th:text="'🗣️ ' + ${targetMovie.languageDisplayName}">🗣️ English</span>
+                        <span class="target-divider">•</span>
+                        <span class="target-rating">⭐ <strong th:text="${targetMovie.ratingFormatted}">8.4 / 10</strong></span>
+                        <span class="target-vote-count" th:if="${targetMovie.voteCount > 0}" th:text="'(' + ${#numbers.formatInteger(targetMovie.voteCount, 1, 'COMMA')} + ' votes)'">(36,000 votes)</span>
+                        <span class="target-divider" th:if="${targetMovie.director != null && !targetMovie.director.isEmpty()}">•</span>
+                        <span class="target-director" th:if="${targetMovie.director != null && !targetMovie.director.isEmpty()}" th:text="'Dir: ' + ${targetMovie.director}">Dir: Christopher Nolan</span>
+                    </div>
+                    <p class="target-overview" th:if="${targetMovie.overview != null && !targetMovie.overview.isEmpty()}" th:text="${targetMovie.overview}">
+                        Cobb, a skilled thief who steals corporate secrets through the use of dream-sharing technology...
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recommendations Results Section -->
+        <section th:if="${hasSearched && recommendations != null && !recommendations.isEmpty()}" class="results-section">
+            <div class="results-header">
+                <h3 class="results-title">
+                    Recommended Movies Similar to "<span th:text="${targetMovie.title}">Inception</span>"
+                </h3>
+                <span class="results-badge" th:text="${resultCount} + ' Top Recommendations'">10 Top Recommendations</span>
+            </div>
+
+            <!-- Responsive Movie Cards Grid -->
+            <div class="movie-grid">
+                <div class="movie-card" th:each="rec, iter : ${recommendations}">
+                    
+                    <!-- Card Top: Poster & Similarity Badge -->
+                    <div class="card-poster-container">
+                        <img th:src="${rec.movie.posterUrl}"
+                             th:alt="${rec.movie.title}"
+                             class="card-poster"
+                             loading="lazy"
+                             onerror="this.src='https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=500&q=80'">
+                        
+                        <!-- Similarity Score Percentage Badge -->
+                        <div class="similarity-badge" title="Content Similarity Score calculated by Java Algorithm">
+                            <span class="badge-icon">🎯</span>
+                            <span class="badge-value" th:text="${rec.similarityPercentageFormatted}">88%</span>
+                            <span class="badge-label">Similar</span>
+                        </div>
+
+                        <!-- Rank Badge -->
+                        <div class="rank-badge" th:text="'#' + ${iter.count}">#1</div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body">
+                        <h4 class="movie-title" th:text="${rec.movie.title}">Interstellar</h4>
+                        <div class="movie-original-title" th:if="${rec.movie.hasDistinctOriginalTitle()}" th:text="'Orig: ' + ${rec.movie.originalTitle}">
+                            Orig: Interstellar
+                        </div>
+
+                        <div class="movie-meta-row">
+                            <span class="movie-year" th:if="${rec.movie.releaseYear > 0}" th:text="${rec.movie.releaseYear}">2014</span>
+                            <span class="movie-meta-dot">•</span>
+                            <span class="movie-genre" th:text="${rec.movie.genreString}">Sci-Fi • Drama</span>
+                            <span class="movie-meta-dot" th:if="${rec.movie.originalLanguage != null && !rec.movie.originalLanguage.isEmpty()}">•</span>
+                            <span class="movie-lang-tag" th:if="${rec.movie.originalLanguage != null && !rec.movie.originalLanguage.isEmpty()}" th:text="'[' + ${rec.movie.originalLanguage.toUpperCase()} + '] ' + ${rec.movie.languageDisplayName}">[EN] English</span>
+                        </div>
+
+                        <!-- TMDB Rating -->
+                        <div class="movie-rating-row">
+                            <span class="rating-star">⭐</span>
+                            <span class="rating-text">
+                                <strong th:text="${rec.movie.ratingFormatted}">8.4 / 10</strong>
+                            </span>
+                            <span class="rating-votes" th:if="${rec.movie.voteCount > 0}" th:text="'(' + ${#numbers.formatInteger(rec.movie.voteCount, 1, 'COMMA')} + ')'">(25k)</span>
+                            <span class="rating-sub">TMDB Rating</span>
+                        </div>
+
+                        <!-- Brief Plot Overview -->
+                        <p class="movie-overview" th:if="${rec.movie.overview != null && !rec.movie.overview.isEmpty()}" th:text="${rec.movie.overview}">
+                            The adventures of a group of explorers who make use of a newly discovered wormhole...
+                        </p>
+
+                        <!-- Algorithm Similarity Breakdown -->
+                        <div class="card-breakdown">
+                            <div class="breakdown-item">
+                                <span>Genre Match:</span>
+                                <strong th:text="${#numbers.formatDecimal(rec.genreSimilarity * 100, 1, 0)} + '%'">75%</strong>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Plot Semantics:</span>
+                                <strong th:text="${#numbers.formatDecimal(rec.overviewSimilarity * 100, 1, 0)} + '%'">65%</strong>
+                            </div>
+                            <div class="breakdown-item" th:if="${rec.castDirectorSimilarity > 0}">
+                                <span>Director/Cast:</span>
+                                <strong th:text="${#numbers.formatDecimal(rec.castDirectorSimilarity * 100, 1, 0)} + '%'">60%</strong>
+                            </div>
+                            <div class="breakdown-item final-score-row">
+                                <span>Final Ranking Score:</span>
+                                <strong th:text="${rec.finalScoreFormatted}">0.875</strong>
+                            </div>
+                        </div>
+
+                        <div class="card-action-row">
+                            <a th:href="@{/recommend(tmdbId=${rec.movie.tmdbId})}" class="btn-recommend-this">
+                                Discover Similar to This ➔
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Empty State (No recommendations found) -->
+        <div th:if="${hasSearched && (recommendations == null || recommendations.isEmpty()) && errorMessage == null}" class="empty-results">
+            <div class="empty-icon">🎬</div>
+            <h3>No similar movies found</h3>
+            <p>Try searching for a different movie title or explore our sample suggestions.</p>
+        </div>
+
+        <!-- Latest Movies Section (TMDB Discover & Category Feeds) -->
+        <section class="latest-movies-section" id="latest-section">
+            <div class="latest-section-header">
+                <div class="latest-title-group">
+                    <h3 class="latest-section-title">
+                        Explore Movies
+                    </h3>
+                    <p class="latest-subtitle" th:text="${latestMovies.categoryTitle}">Now Playing in Theaters</p>
+                </div>
+
+                <!-- Region & Language Filters Bar -->
+                <div class="filter-controls-bar">
+                    <!-- Region Filter Toggle -->
+                    <div class="region-filter-group">
+                        <span class="region-label">Region:</span>
+                        <a th:href="@{/(category=${selectedCategory}, page=1, region='', lang=${selectedLanguage})} + '#latest-section'"
+                           th:class="${selectedRegion == null || selectedRegion == ''} ? 'region-pill active' : 'region-pill'">
+                            🌐 Global
+                        </a>
+                        <a th:href="@{/(category=${selectedCategory}, page=1, region='IN', lang=${selectedLanguage})} + '#latest-section'"
+                           th:class="${selectedRegion == 'IN'} ? 'region-pill active' : 'region-pill'">
+                            🇮🇳 India (IN)
+                        </a>
+                    </div>
+
+                    <!-- Language Filter Dropdown / Form -->
+                    <div class="language-filter-group">
+                        <label for="languageSelect" class="language-label">🗣️ Language:</label>
+                        <form th:action="@{/}" method="get" class="language-form">
+                            <input type="hidden" name="category" th:value="${selectedCategory}">
+                            <input type="hidden" name="region" th:value="${selectedRegion}">
+                            <input type="hidden" name="page" value="1">
+                            <select id="languageSelect" name="lang" class="language-select" onchange="this.form.submit()">
+                                <option value="" th:selected="${selectedLanguage == null || selectedLanguage == ''}">🌐 All Languages</option>
+                                <option value="hi" th:selected="${selectedLanguage == 'hi'}">🇮🇳 Hindi (हिंदी)</option>
+                                <option value="ta" th:selected="${selectedLanguage == 'ta'}">🇮🇳 Tamil (தமிழ்)</option>
+                                <option value="te" th:selected="${selectedLanguage == 'te'}">🇮🇳 Telugu (తెలుగు)</option>
+                                <option value="kn" th:selected="${selectedLanguage == 'kn'}">🇮🇳 Kannada (ಕನ್ನಡ)</option>
+                                <option value="ml" th:selected="${selectedLanguage == 'ml'}">🇮🇳 Malayalam (മലയാളം)</option>
+                                <option value="en" th:selected="${selectedLanguage == 'en'}">🇺🇸 English</option>
+                                <option value="ko" th:selected="${selectedLanguage == 'ko'}">🇰🇷 Korean (한국어)</option>
+                                <option value="ja" th:selected="${selectedLanguage == 'ja'}">🇯🇵 Japanese (日本語)</option>
+                                <option value="es" th:selected="${selectedLanguage == 'es'}">🇪🇸 Spanish (Español)</option>
+                                <option value="fr" th:selected="${selectedLanguage == 'fr'}">🇫🇷 French (Français)</option>
+                                <option value="de" th:selected="${selectedLanguage == 'de'}">🇩🇪 German (Deutsch)</option>
+                                <option value="zh" th:selected="${selectedLanguage == 'zh'}">🇨🇳 Chinese (中文)</option>
+                            </select>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Language Pills Bar for Rapid Filtering -->
+            <div class="language-pills-bar">
+                <span class="pills-title">Quick Language Filter:</span>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='')} + '#latest-section'"
+                   th:class="${selectedLanguage == null || selectedLanguage == ''} ? 'lang-pill active' : 'lang-pill'">
+                    All Languages
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='hi')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'hi'} ? 'lang-pill active' : 'lang-pill'">
+                    Hindi
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='ta')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'ta'} ? 'lang-pill active' : 'lang-pill'">
+                    Tamil
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='te')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'te'} ? 'lang-pill active' : 'lang-pill'">
+                    Telugu
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='kn')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'kn'} ? 'lang-pill active' : 'lang-pill'">
+                    Kannada
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='ml')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'ml'} ? 'lang-pill active' : 'lang-pill'">
+                    Malayalam
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='en')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'en'} ? 'lang-pill active' : 'lang-pill'">
+                    English
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='ko')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'ko'} ? 'lang-pill active' : 'lang-pill'">
+                    Korean
+                </a>
+                <a th:href="@{/(category=${selectedCategory}, page=1, region=${selectedRegion}, lang='ja')} + '#latest-section'"
+                   th:class="${selectedLanguage == 'ja'} ? 'lang-pill active' : 'lang-pill'">
+                    Japanese
+                </a>
+            </div>
+
+            <!-- Category Tabs Navigation -->
+            <div class="category-tabs">
+                <a th:href="@{/(category='now_playing', page=1, region=${selectedRegion}, lang=${selectedLanguage})} + '#latest-section'"
+                   th:class="${selectedCategory == 'now_playing'} ? 'category-tab active' : 'category-tab'">
+                    🎬 Now Playing
+                </a>
+                <a th:href="@{/(category='popular', page=1, region=${selectedRegion}, lang=${selectedLanguage})} + '#latest-section'"
+                   th:class="${selectedCategory == 'popular'} ? 'category-tab active' : 'category-tab'">
+                    ⭐ Popular
+                </a>
+                <a th:href="@{/(category='upcoming', page=1, region=${selectedRegion}, lang=${selectedLanguage})} + '#latest-section'"
+                   th:class="${selectedCategory == 'upcoming'} ? 'category-tab active' : 'category-tab'">
+                    🚀 Upcoming
+                </a>
+                <a th:href="@{/(category='trending', page=1, region=${selectedRegion}, lang=${selectedLanguage})} + '#latest-section'"
+                   th:class="${selectedCategory == 'trending'} ? 'category-tab active' : 'category-tab'">
+                    🔥 Trending Today
+                </a>
+                <a th:href="@{/(category='recently_released', page=1, region=${selectedRegion}, lang=${selectedLanguage})} + '#latest-section'"
+                   th:class="${selectedCategory == 'recently_released'} ? 'category-tab active' : 'category-tab'">
+                    📅 Recently Released (Discover)
+                </a>
+            </div>
+
+            <!-- Technical Notice / Disclaimer -->
+            <div class="tmdb-disclaimer-note">
+                <span>ℹ️ TMDB Multi-Language Discovery: Titles and overviews are localized in English (<code>language=en-US</code>), while original movies are filtered across all original audio languages (<code>with_original_language</code>).</span>
+                <span th:if="${latestMovies.fromCache}" class="cache-badge">⚡ Cached</span>
+            </div>
+
+            <!-- Latest Movie Cards Grid -->
+            <div th:if="${latestMovies != null && !latestMovies.empty}" class="movie-grid latest-movie-grid">
+                <div class="movie-card latest-card" th:each="m : ${latestMovies.movies}">
+                    <div class="card-poster-container">
+                        <img th:src="${m.posterUrl}"
+                             th:alt="${m.title}"
+                             class="card-poster"
+                             loading="lazy"
+                             onerror="this.src='https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=500&q=80'">
+                        
+                        <div class="tmdb-id-badge" th:text="'TMDB #' + ${m.tmdbId}">TMDB #12345</div>
+                        <div class="language-badge" th:if="${m.originalLanguage != null && !m.originalLanguage.isEmpty()}" th:text="${m.languageDisplayName}">
+                            Hindi
+                        </div>
+                        <div class="rating-badge" th:if="${m.voteAverage > 0}">
+                            ⭐ <span th:text="${#numbers.formatDecimal(m.voteAverage, 1, 1)}">7.8</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <h4 class="movie-title" th:text="${m.title}">Movie Title</h4>
+                        <div class="movie-original-title" th:if="${m.hasDistinctOriginalTitle()}" th:text="'Orig: ' + ${m.originalTitle}">
+                            Orig: Original Title
+                        </div>
+
+                        <div class="movie-meta-row">
+                            <span class="movie-year" th:if="${m.releaseDate != null && !m.releaseDate.isEmpty()}" th:text="${m.releaseDate}">2024-11-22</span>
+                            <span class="movie-meta-dot" th:if="${m.releaseDate != null && !m.releaseDate.isEmpty()}">•</span>
+                            <span class="movie-genre" th:text="${m.genreString}">Action • Drama</span>
+                            <span class="movie-meta-dot" th:if="${m.originalLanguage != null && !m.originalLanguage.isEmpty()}">•</span>
+                            <span class="movie-lang-tag" th:if="${m.originalLanguage != null && !m.originalLanguage.isEmpty()}" th:text="'[' + ${m.originalLanguage.toUpperCase()} + '] ' + ${m.languageDisplayName}">[HI] Hindi</span>
+                        </div>
+
+                        <p class="movie-overview" th:if="${m.overview != null && !m.overview.isEmpty()}" th:text="${m.overview}">
+                            Movie plot summary...
+                        </p>
+
+                        <div class="latest-card-footer">
+                            <span class="vote-count-text" th:if="${m.voteCount > 0}" th:text="${#numbers.formatInteger(m.voteCount, 1, 'COMMA')} + ' votes'">
+                                1,200 votes
+                            </span>
+                            <a th:href="@{/recommend(tmdbId=${m.tmdbId})}" class="btn-similar">
+                                Recommend Similar ➔
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State for Latest Movies -->
+            <div th:if="${latestMovies == null || latestMovies.empty}" class="empty-results">
+                <div class="empty-icon">🌐</div>
+                <h3>No movies found for selected filter</h3>
+                <p>Try choosing "All Languages" or a different category to view more movies.</p>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div th:if="${latestMovies != null && latestMovies.totalPages > 1}" class="pagination-bar">
+                <a th:if="${latestMovies.hasPrevious()}"
+                   th:href="@{/(category=${selectedCategory}, page=${latestMovies.previousPage}, region=${selectedRegion}, lang=${selectedLanguage})} + '#latest-section'"
+                   class="page-btn page-prev">
+                    ◀ Previous
+                </a>
+                <span th:unless="${latestMovies.hasPrevious()}" class="page-btn page-disabled">
+                    ◀ Previous
+                </span>
+
+                <div class="page-info">
+                    Page <strong th:text="${latestMovies.page}">1</strong> of <strong th:text="${latestMovies.totalPages}">10</strong>
+                    <span class="total-results-count" th:if="${latestMovies.totalResults > 0}"
+                          th:text="'(' + ${#numbers.formatInteger(latestMovies.totalResults, 1, 'COMMA')} + ' movies)'">
+                        (200 movies)
+                    </span>
+                </div>
+
+                <a th:if="${latestMovies.hasNext()}"
+                   th:href="@{/(category=${selectedCategory}, page=${latestMovies.nextPage}, region=${selectedRegion}, lang=${selectedLanguage})} + '#latest-section'"
+                   class="page-btn page-next">
+                    Next ▶
+                </a>
+                <span th:unless="${latestMovies.hasNext()}" class="page-btn page-disabled">
+                    Next ▶
+                </span>
+            </div>
+        </section>
+
+        <!-- Recent Searches List (JDBC Demonstration) -->
+        <section th:if="${recentSearches != null && !recentSearches.isEmpty()}" class="recent-searches-card">
+            <div class="recent-header">
+                <span class="recent-icon">🕒</span>
+                <h4>Recent Search History (Logged via JDBC Transaction):</h4>
+            </div>
+            <div class="recent-tags">
+                <a th:each="s : ${recentSearches}"
+                   th:href="@{/search(movieName=${s.targetMovieTitle})}"
+                   class="recent-tag"
+                   th:title="'Searched on ' + ${s.searchedAt}">
+                    🎬 <span th:text="${s.targetMovieTitle}">Movie Title</span>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="container">
+            <p><strong>AI-Based Movie Recommendation System</strong> &bull; Java 21, Spring Boot &amp; Thymeleaf</p>
+            <p class="footer-formula">
+                Content-Based Algorithm Formula: <code>FinalScore = (0.70 &times; ContentSimilarity) + (0.30 &times; NormalizedRating)</code>
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>

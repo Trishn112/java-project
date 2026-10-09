@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/header :: header-head('Browse Catalog')}"></head>
+<body>
+<nav th:replace="~{layout/header :: header-nav}"></nav>
+
+<header class="hero-section" style="padding: 2.25rem 0 1.75rem;">
+    <div class="container">
+        <h1 class="hero-title" style="font-size: 2rem;">📚 Browse All Items</h1>
+        <p class="hero-subtitle" style="margin-bottom: 0;">
+            Explore all items in the repository, filter by genre, sort by ratings, or check individual properties.
+        </p>
+    </div>
+</header>
+
+<main class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+
+    <!-- Filter and Search Card -->
+    <section class="filter-card">
+        <form th:action="@{/items}" method="get" class="filter-form">
+            <div class="search-input-group">
+                <input type="text" name="query" th:value="${selectedQuery}"
+                       placeholder="🔍 Search catalog by title or keyword..."
+                       class="input-control">
+            </div>
+
+            <div class="filter-select-group">
+                <select name="categoryId" class="select-control">
+                    <option value="">All Categories</option>
+                    <option th:each="cat : ${categories}"
+                            th:value="${cat.id}"
+                            th:text="${cat.name}"
+                            th:selected="${selectedCategoryId != null && selectedCategoryId == cat.id}">
+                        Category
+                    </option>
+                </select>
+            </div>
+
+            <div class="filter-select-group">
+                <select name="minRating" class="select-control">
+                    <option value="">Min Rating (Any)</option>
+                    <option value="4.0" th:selected="${selectedMinRating != null && selectedMinRating == 4.0}">4.0+ Stars</option>
+                    <option value="4.5" th:selected="${selectedMinRating != null && selectedMinRating == 4.5}">4.5+ Stars</option>
+                    <option value="4.8" th:selected="${selectedMinRating != null && selectedMinRating == 4.8}">4.8+ Stars</option>
+                </select>
+            </div>
+
+            <div class="filter-select-group">
+                <select name="sortBy" class="select-control">
+                    <option value="rating_desc" th:selected="${selectedSortBy == 'rating_desc'}">Rating (High to Low)</option>
+                    <option value="popularity_desc" th:selected="${selectedSortBy == 'popularity_desc'}">Popularity (High to Low)</option>
+                    <option value="title_asc" th:selected="${selectedSortBy == 'title_asc'}">Title (A to Z)</option>
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                <a th:href="@{/items}" class="btn btn-secondary btn-sm">Reset</a>
+            </div>
+        </form>
+    </section>
+
+    <!-- Items Grid -->
+    <section>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h2 style="font-size: 1.25rem; font-weight: 700;">Catalog Results</h2>
+            <span style="font-size: 0.9rem; color: var(--text-muted);" th:text="${items.size()} + ' item(s) found'">8 items</span>
+        </div>
+
+        <div class="cards-grid" th:if="${items != null && !items.isEmpty()}">
+            <div class="item-card" th:each="item : ${items}">
+                <div>
+                    <div class="item-card-header">
+                        <h3 class="item-title" th:text="${item.name}">Item Title</h3>
+                        <span class="badge-category" th:text="${item.category != null ? item.category.name : 'General'}">Category</span>
+                    </div>
+                    <p class="item-description" th:text="${item.description}">Item Description</p>
+                </div>
+
+                <div>
+                    <div class="metric-row">
+                        <span>Quality Rating:</span>
+                        <span class="stars"><span th:text="${item.rating}">4.8</span> / 5.0 ★</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span>Popularity:</span>
+                        <div>
+                            <span th:text="${item.popularity}">90</span> / 100
+                            <div class="popularity-bar-container">
+                                <div class="popularity-bar-fill" th:style="'width: ' + ${item.popularity} + '%;'"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <a th:href="@{'/items/' + ${item.id}}" class="btn btn-primary btn-sm" style="flex: 1;">View Details &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${items == null || items.isEmpty()}">
+            <div class="empty-icon">🔍</div>
+            <h3 class="empty-title">No items match your criteria</h3>
+            <p class="empty-text">Try adjusting your keyword or relaxing the category / rating filters.</p>
+            <a th:href="@{/items}" class="btn btn-primary btn-sm">Reset Filters</a>
+        </div>
+    </section>
+
+</main>
+
+<footer th:replace="~{layout/footer :: footer}"></footer>
+</body>
+</html>
