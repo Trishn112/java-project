@@ -118,7 +118,7 @@ The application adheres to the **Layered Architecture (N-Tier)** and **Model-Vie
 
 ```mermaid
 graph TD
-    User([fa:fa-user User Browser / Client])
+    User["User Browser / Web Client"]
     
     subgraph SpringBootApp ["Spring Boot Application Boundary (Port 8080)"]
         subgraph WebTier ["Presentation & Controller"]
@@ -132,51 +132,51 @@ graph TD
         end
 
         subgraph EngineTier ["Algorithmic Engine (Core OOP)"]
-            RecommenderInterface["<<interface>>\nMovieRecommender"]
+            RecommenderInterface["Interface: MovieRecommender"]
             AbstractEngine["AbstractMovieRecommender"]
             ConcreteEngine["ContentBasedMovieRecommender"]
         end
 
         subgraph IntegrationTier ["Integration & Network"]
             TmdbClient["TmdbApiClient"]
-            ThreadPool["ExecutorService\n(Concurrent Candidate Fetch)"]
+            ThreadPool["ExecutorService<br/>(Concurrent Candidate Fetch)"]
         end
 
         subgraph RepoTier ["Data Access (Repository Pattern)"]
-            MovieRepoInterface["<<interface>>\nMovieRepository"]
-            HistoryRepoInterface["<<interface>>\nSearchHistoryRepository"]
-            MovieJdbc["MovieJdbcRepository\n(PreparedStatement Upsert)"]
-            HistoryJdbc["SearchHistoryJdbcRepository\n(Transactions: commit/rollback)"]
-            DataRepo["DataRepository\n(Collections / Generics)"]
+            MovieRepoInterface["Interface: MovieRepository"]
+            HistoryRepoInterface["Interface: SearchHistoryRepository"]
+            MovieJdbc["MovieJdbcRepository<br/>(PreparedStatement Upsert)"]
+            HistoryJdbc["SearchHistoryJdbcRepository<br/>(Atomic Commit and Rollback)"]
+            DataRepo["DataRepository<br/>(Collections and Generics)"]
         end
     end
 
     subgraph ExternalServices ["External Infrastructure"]
-        TmdbApi[("TMDB REST API v3\napi.themoviedb.org")]
-        MySQL[("MySQL 8.0+ Database\nmovie_recommendation_db")]
+        TmdbApi[("TMDB REST API v3<br/>api.themoviedb.org")]
+        MySQL[("MySQL 8.0+ Database<br/>movie_recommendation_db")]
     end
 
-    User -->|HTTP GET /search?movieName=...| Controller
-    Controller -->|Delegates Search & Rec Request| MovieService
-    Controller -->|Binds Data to Model| Thymeleaf
-    Thymeleaf -->|Renders HTML Response| User
+    User -->|"HTTP GET /search"| Controller
+    Controller -->|"Delegates Search & Rec Request"| MovieService
+    Controller -->|"Binds Data to Model"| Thymeleaf
+    Thymeleaf -->|"Renders HTML Response"| User
 
-    MovieService -->|1. Search & Candidate Fetch| TmdbClient
-    TmdbClient -->|Async HTTP Requests| ThreadPool
-    ThreadPool -->|REST API Calls| TmdbApi
-    TmdbClient -.->|Offline Fallback Data| MovieService
+    MovieService -->|"1. Search & Candidate Fetch"| TmdbClient
+    TmdbClient -->|"Async HTTP Requests"| ThreadPool
+    ThreadPool -->|"REST API Calls"| TmdbApi
+    TmdbClient -.->|"Offline Fallback Data"| MovieService
 
-    MovieService -->|2. Check & Cache Movies| MovieRepoInterface
+    MovieService -->|"2. Check & Cache Movies"| MovieRepoInterface
     MovieRepoInterface --> MovieJdbc
-    MovieJdbc -->|JDBC Connection / Upsert| MySQL
+    MovieJdbc -->|"JDBC Connection or Upsert"| MySQL
 
-    MovieService -->|3. Compute Math Similarity| RecommenderInterface
+    MovieService -->|"3. Compute Math Similarity"| RecommenderInterface
     RecommenderInterface -.-> AbstractEngine
     AbstractEngine --> ConcreteEngine
 
-    MovieService -->|4. Log Search & Recs (Atomic)| HistoryRepoInterface
+    MovieService -->|"4. Log Search & Recs (Atomic)"| HistoryRepoInterface
     HistoryRepoInterface --> HistoryJdbc
-    HistoryJdbc -->|Transaction: Commit / Rollback| MySQL
+    HistoryJdbc -->|"Transaction: Commit or Rollback"| MySQL
 ```
 
 ---
@@ -225,13 +225,13 @@ sequenceDiagram
     Note over Svc,Engine: 4. Core Recommendation Algorithm
     Svc->>Engine: recommendSimilar(targetMovie, candidatePool, topN=10)
     loop For each Candidate Movie
-        Engine->>Engine: isSameMovie() -> Exclude target movie itself
+        Engine->>Engine: isSameMovie(): Exclude target movie itself
         Engine->>Engine: calculateGenreSimilarity() (Jaccard Index)
         Engine->>Engine: calculateOverviewSimilarity() (NLP Token Overlap)
         Engine->>Engine: calculateCastDirectorSimilarity() (Continuity)
-        Engine->>Engine: calculateFinalScore = (0.70 * ContentSim) + (0.30 * NormRating)
+        Engine->>Engine: calculateFinalScore(0.70 * ContentSim + 0.30 * NormRating)
     end
-    Engine->>Engine: Sort via Comparator.comparingDouble(FinalScore).reversed()
+    Engine->>Engine: Sort candidates by FinalScore descending
     Engine-->>Svc: List<MovieRecommendation> rankedTop10
 
     Note over Svc,HRepo: 5. Transactional Search History Logging
@@ -285,8 +285,8 @@ erDiagram
         TIMESTAMP created_at "Log timestamp"
     }
 
-    SEARCH_HISTORY ||--o{ RECOMMENDATION_HISTORY : "generates (1 to N)"
-    MOVIES ||--o{ RECOMMENDATION_HISTORY : "recommended in (1 to N)"
+    SEARCH_HISTORY ||--o{ RECOMMENDATION_HISTORY : "generates"
+    MOVIES ||--o{ RECOMMENDATION_HISTORY : "recommends"
 ```
 
 #### Relational Constraints & Schema Details:
@@ -352,7 +352,7 @@ classDiagram
         +getRole() String
         +getDepartment() String
     }
-    User <|-- Admin : Extends (IS-A)
+    User <|-- Admin : extends
 
     %% Algorithmic Engine Inheritance
     class MovieRecommender {
@@ -361,10 +361,10 @@ classDiagram
     }
     class AbstractMovieRecommender {
         <<abstract>>
-        #STOP_WORDS Set~String~
+        #Set STOP_WORDS
         #isSameMovie(target, candidate) boolean
         #normalizeRating(voteAverage) double
-        #extractTokens(text) Set~String~
+        #extractTokens(text) Set
         #clampScore(score) double
     }
     class ContentBasedMovieRecommender {
@@ -373,8 +373,8 @@ classDiagram
         +calculateCastDirectorSimilarity() double
         +recommendSimilar(target, pool, topN) List
     }
-    MovieRecommender <|.. AbstractMovieRecommender : Implements
-    AbstractMovieRecommender <|-- ContentBasedMovieRecommender : Extends (IS-A)
+    MovieRecommender <|.. AbstractMovieRecommender : implements
+    AbstractMovieRecommender <|-- ContentBasedMovieRecommender : extends
 
     %% Exception Hierarchy
     class RuntimeException
@@ -387,10 +387,10 @@ classDiagram
     class DatabaseAccessException
     class TmdbApiException
 
-    RuntimeException <|-- MovieRecommendationException : Extends
-    MovieRecommendationException <|-- MovieNotFoundException : Extends
-    MovieRecommendationException <|-- DatabaseAccessException : Extends
-    MovieRecommendationException <|-- TmdbApiException : Extends
+    RuntimeException <|-- MovieRecommendationException : extends
+    MovieRecommendationException <|-- MovieNotFoundException : extends
+    MovieRecommendationException <|-- DatabaseAccessException : extends
+    MovieRecommendationException <|-- TmdbApiException : extends
 ```
 
 1. **Domain Model Inheritance**:
